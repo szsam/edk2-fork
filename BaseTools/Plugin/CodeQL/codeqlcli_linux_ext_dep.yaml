@@ -10,8 +10,8 @@
 #
 # When updating the CodeQL CLI used here, update the corresponding codeql/cpp-queries version in CodeQlQueries.qls.
 # Visit the `qlpack.yml` in the release branch for the CodeQL CLI to get the version to use there. For example, the
-# CodeQL CLI 2.18.1 file is https://github.com/github/codeql/blob/codeql-cli-2.18.1/cpp/ql/src/qlpack.yml and the
-# pack version there is 1.1.0.
+# CodeQL CLI 2.23.3 file is https://github.com/github/codeql/blob/codeql-cli-2.23.3/cpp/ql/src/qlpack.yml and the
+# pack version there is 1.5.2.
 #
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # SPDX-License-Identifier: BSD-2-Clause-Patent
@@ -21,9 +21,9 @@
   "scope": "codeql-linux-ext-dep",
   "type": "web",
   "name": "codeql_linux_cli",
-  "source": "https://github.com/github/codeql-cli-binaries/releases/download/v2.18.1/codeql-linux64.zip",
-  "version": "2.18.1",
-  "sha256": "1547f4a3b509474404daf2e4b821f71cd93462ec45322d9124c2b04e3d52c771",
+  "source": "https://github.com/github/codeql-cli-binaries/releases/download/v2.23.3/codeql-linux64.zip",
+  "version": "2.23.3",
+  "sha256": "9866d7c40aa182b950f99ad4594c9fe36c2172ee9673da1d302dc56fe82183e5",
   "compression_type": "zip",
   "internal_path": "/codeql/",
   "flags": ["set_shell_var", ],
