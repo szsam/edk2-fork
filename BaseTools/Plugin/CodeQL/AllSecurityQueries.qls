@@ -1,0 +1,16 @@
+---
+- description: C++ queries
+
+- queries: '.'
+  from: codeql/cpp-queries@1.5.2
+
+##########################################################################################
+# Query Selection
+##########################################################################################
+
+- include:
+    tags contain: security
+    severity:
+      - "error"
+      - "warning"
+      - "recommendation"
