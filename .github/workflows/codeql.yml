@@ -322,8 +322,10 @@ jobs:
 
         package = os.environ['PACKAGE_NAME'].strip().lower()
         directory_name = 'codeql-analysis-' + package + '-debug'
-        file_name = 'codeql-db-' + package + '-debug-0.sarif'
+        db_name = 'codeql-db-' + package + '-debug-0'
+        file_name = db_name + '.sarif'
         sarif_path = Path('Build', directory_name, file_name)
+        db_path = Path('Build', db_name)
 
         with open(os.environ['GITHUB_OUTPUT'], 'a') as fh:
             if sarif_path.is_file():
@@ -335,10 +337,11 @@ jobs:
                 print(f'upload_sarif_file=true', file=fh)
                 print(f'emacs_file_path={emacs_file_path}', file=fh)
                 print(f'sarif_file_path={sarif_path}', file=fh)
+                print(f'db_dir_path={db_path}', file=fh)
             else:
                 print(f'upload_sarif_file=false', file=fh)
 
-    - name: Upload CodeQL Results (SARIF) As An Artifact
+    - name: Upload CodeQL Results (SARIF) And Database As An Artifact
       uses: actions/upload-artifact@v4
       if: steps.env_data.outputs.upload_sarif_file == 'true'
       with:
@@ -346,12 +349,14 @@ jobs:
         path: |
           ${{ steps.env_data.outputs.emacs_file_path }}
           ${{ steps.env_data.outputs.sarif_file_path }}
+          ${{ steps.env_data.outputs.db_dir_path }}
         retention-days: 14
         if-no-files-found: warn
 
     - name: Upload CodeQL Results (SARIF) To GitHub Code Scanning
       uses: github/codeql-action/upload-sarif@v3
-      if: steps.env_data.outputs.upload_sarif_file == 'true'
+      #if: steps.env_data.outputs.upload_sarif_file == 'true'
+      if: false
       with:
         # Path to SARIF file relative to the root of the repository.
         sarif_file: ${{ steps.env_data.outputs.sarif_file_path }}
