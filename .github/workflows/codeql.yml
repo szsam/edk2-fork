@@ -341,7 +341,7 @@ jobs:
             else:
                 print(f'upload_sarif_file=false', file=fh)
 
-    - name: Upload CodeQL Results (SARIF) And Database As An Artifact
+    - name: Upload CodeQL Results (SARIF) As An Artifact
       uses: actions/upload-artifact@v4
       if: steps.env_data.outputs.upload_sarif_file == 'true'
       with:
@@ -349,6 +349,15 @@ jobs:
         path: |
           ${{ steps.env_data.outputs.emacs_file_path }}
           ${{ steps.env_data.outputs.sarif_file_path }}
+        retention-days: 14
+        if-no-files-found: warn
+
+    - name: Upload CodeQL Database As An Artifact
+      uses: actions/upload-artifact@v4
+      if: steps.env_data.outputs.upload_sarif_file == 'true'
+      with:
+        name: ${{ matrix.Package }}-${{ steps.convert_arch_hyphen.outputs.arch_list }}-CodeQL-DATABASE
+        path: |
           ${{ steps.env_data.outputs.db_dir_path }}
         retention-days: 14
         if-no-files-found: warn
