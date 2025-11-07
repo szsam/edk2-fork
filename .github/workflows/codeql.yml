@@ -36,10 +36,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - Package: "ArmPkg"
-            ArchList: "AARCH64"
-          - Package: "ArmPlatformPkg"
-            ArchList: "AARCH64"
           - Package: "CryptoPkg"
             ArchList: "IA32"
           - Package: "CryptoPkg"
@@ -47,7 +43,9 @@ jobs:
           - Package: "DynamicTablesPkg"
             ArchList: "IA32,X64"
           - Package: "EmbeddedPkg"
-            ArchList: "IA32,X64"
+            ArchList: "IA32"
+          - Package: "EmbeddedPkg"
+            ArchList: "X64"
           - Package: "FatPkg"
             ArchList: "IA32,X64"
           - Package: "FmpDevicePkg"
