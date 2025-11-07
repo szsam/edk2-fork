@@ -37,9 +37,9 @@ jobs:
       matrix:
         include:
           - Package: "ArmPkg"
-            ArchList: "IA32,X64"
+            ArchList: "AARCH64"
           - Package: "ArmPlatformPkg"
-            ArchList: "IA32,X64"
+            ArchList: "AARCH64"
           - Package: "CryptoPkg"
             ArchList: "IA32"
           - Package: "CryptoPkg"
