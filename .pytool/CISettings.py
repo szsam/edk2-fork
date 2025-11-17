@@ -186,6 +186,8 @@ class Settings(CiBuildSettingsManager, UpdateSettingsManager, SetupSettingsManag
         '''
         rs = []
         rs.append(RequiredSubmodule(
+            "ArmPkg/Library/ArmSoftFloatLib/berkeley-softfloat-3", False))
+        rs.append(RequiredSubmodule(
             "CryptoPkg/Library/OpensslLib/openssl", False))
         rs.append(RequiredSubmodule(
             "UnitTestFrameworkPkg/Library/CmockaLib/cmocka", False))
@@ -207,8 +209,6 @@ class Settings(CiBuildSettingsManager, UpdateSettingsManager, SetupSettingsManag
             "MdePkg/Library/MipiSysTLib/mipisyst", False))
         rs.append(RequiredSubmodule(
             "CryptoPkg/Library/MbedTlsLib/mbedtls", False))
-        rs.append(RequiredSubmodule(
-            "SecurityPkg/DeviceSecurity/SpdmLib/libspdm", False))
         return rs
 
     def GetName(self):
