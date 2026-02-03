@@ -976,7 +976,7 @@ PeCoffLoaderRelocateImage (
   PHYSICAL_ADDRESS                     BaseAddress;
   UINT32                               NumberOfRvaAndSizes;
   UINT32                               TeStrippedOffset;
-  UINT32                               EndAddress;
+  //UINT32                               EndAddress;
 
   ASSERT (ImageContext != NULL);
 
