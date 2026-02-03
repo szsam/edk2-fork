@@ -1056,19 +1056,13 @@ PeCoffLoaderRelocateImage (
     RelocDir = &Hdr.Te->DataDirectory[0];
   }
 
-  RelocBase    = NULL;
-  RelocBaseEnd = NULL;
   if ((RelocDir != NULL) && (RelocDir->Size > 0)) {
-    Status = SafeUint32Add (RelocDir->VirtualAddress, (RelocDir->Size - 1), &EndAddress);
-    if (!RETURN_ERROR (Status)) {
-      RelocBase    = (EFI_IMAGE_BASE_RELOCATION *)PeCoffLoaderImageAddress (ImageContext, RelocDir->VirtualAddress, TeStrippedOffset);
-      RelocBaseEnd = (EFI_IMAGE_BASE_RELOCATION *)PeCoffLoaderImageAddress (
-                                                    ImageContext,
-                                                    EndAddress,
-                                                    TeStrippedOffset
-                                                    );
-    }
-
+    RelocBase    = (EFI_IMAGE_BASE_RELOCATION *)PeCoffLoaderImageAddress (ImageContext, RelocDir->VirtualAddress, TeStrippedOffset);
+    RelocBaseEnd = (EFI_IMAGE_BASE_RELOCATION *)PeCoffLoaderImageAddress (
+                                                  ImageContext,
+                                                  RelocDir->VirtualAddress + RelocDir->Size - 1,
+                                                  TeStrippedOffset
+                                                  );
     if ((RelocBase == NULL) || (RelocBaseEnd == NULL) || ((UINTN)RelocBaseEnd < (UINTN)RelocBase)) {
       ImageContext->ImageError = IMAGE_ERROR_FAILED_RELOCATION;
       DEBUG ((DEBUG_ERROR, "Relocation block is not valid\n"));
