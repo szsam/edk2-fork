@@ -3308,7 +3308,6 @@ ConSplitterTextInExDequeueKey (
     &Private->KeyQueue[1],
     Private->CurrentNumberOfKeys * sizeof (EFI_KEY_DATA)
     );
-  ZeroMem (&Private->KeyQueue[Private->CurrentNumberOfKeys], sizeof (EFI_KEY_DATA));
   return EFI_SUCCESS;
 }
 

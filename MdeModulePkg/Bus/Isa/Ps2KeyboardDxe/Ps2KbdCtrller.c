@@ -650,8 +650,6 @@ PopScancodeBufHead (
     if (Buf != NULL) {
       Buf[Index] = Queue->Buffer[Queue->Head];
     }
-
-    Queue->Buffer[Queue->Head] = 0;
   }
 
   return EFI_SUCCESS;
