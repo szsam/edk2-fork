@@ -9,9 +9,6 @@
   Tcg2MeasureGptTable() function will receive untrusted GPT partition table, and parse
   partition data carefully.
 
-  Tcg2MeasurePeImage() function will accept untrusted PE/COFF image and validate its
-  data structure within this image buffer before use.
-
   Copyright (c) Microsoft Corporation.<BR>
   SPDX-License-Identifier: BSD-2-Clause-Patent
 
@@ -113,27 +110,4 @@ Tpm2SanitizePrimaryHeaderGptEventSize (
   OUT UINT32                            *EventSize
   );
 
-/**
-  This function will validate that the PeImage Event Size from the loaded image is sane
-  It will check the following:
-    - EventSize does not overflow
-
-  @param[in] FilePathSize - Size of the file path.
-  @param[out] EventSize - Pointer to the event size.
-
-  @retval EFI_SUCCESS
-    The event size is valid.
-
-  @retval EFI_OUT_OF_RESOURCES
-    Overflow would have occurred.
-
-  @retval EFI_INVALID_PARAMETER
-    One of the passed parameters was invalid.
-**/
-EFI_STATUS
-Tpm2SanitizePeImageEventSize (
-  IN  UINT32  FilePathSize,
-  OUT UINT32  *EventSize
-  );
-
-#endif // DXE_TPM2_MEASURE_BOOT_LIB_VALIDATION_
+#endif // DXE_TPM2_MEASURE_BOOT_LIB_SANITATION_
