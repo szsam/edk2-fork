@@ -17,7 +17,6 @@
 
 Copyright (c) 2009 - 2018, Intel Corporation. All rights reserved.<BR>
 SPDX-License-Identifier: BSD-2-Clause-Patent
-Copyright (c) Microsoft Corporation.<BR>
 
 Copyright (c) Microsoft Corporation.<BR>
 SPDX-License-Identifier: BSD-2-Clause-Patent
@@ -346,22 +345,18 @@ TcgMeasurePeImage (
   ImageLoad     = NULL;
   SectionHeader = NULL;
   Sha1Ctx       = NULL;
-  TcgEvent      = NULL;
   FilePathSize  = (UINT32)GetDevicePathSize (FilePath);
 
+  //
   // Determine destination PCR by BootPolicy
   //
-  Status = TpmSanitizePeImageEventSize (FilePathSize, &EventSize);
-  if (EFI_ERROR (Status)) {
-    return EFI_UNSUPPORTED;
-  }
-
-  TcgEvent = AllocateZeroPool (EventSize);
+  EventSize = sizeof (*ImageLoad) - sizeof (ImageLoad->DevicePath) + FilePathSize;
+  TcgEvent  = AllocateZeroPool (EventSize + sizeof (TCG_PCR_EVENT));
   if (TcgEvent == NULL) {
     return EFI_OUT_OF_RESOURCES;
   }
 
-  TcgEvent->EventSize = EventSize - sizeof (TCG_PCR_EVENT_HDR);
+  TcgEvent->EventSize = EventSize;
   ImageLoad           = (EFI_IMAGE_LOAD_EVENT *)TcgEvent->Event;
 
   switch (ImageType) {
