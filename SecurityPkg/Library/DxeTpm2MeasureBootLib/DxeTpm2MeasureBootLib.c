@@ -20,8 +20,6 @@ Copyright (c) 2013 - 2018, Intel Corporation. All rights reserved.<BR>
 (C) Copyright 2015 Hewlett Packard Enterprise Development LP<BR>
 SPDX-License-Identifier: BSD-2-Clause-Patent
 
-Copyright (c) Microsoft Corporation.<BR>
-SPDX-License-Identifier: BSD-2-Clause-Patent
 **/
 
 #include <PiDxe.h>
@@ -148,11 +146,10 @@ Tcg2MeasureGptTable (
   EFI_TCG2_EVENT               *Tcg2Event;
   EFI_CC_EVENT                 *CcEvent;
   EFI_GPT_DATA                 *GptData;
-  UINT32                       TcgEventSize;
+  UINT32                       EventSize;
   EFI_TCG2_PROTOCOL            *Tcg2Protocol;
   EFI_CC_MEASUREMENT_PROTOCOL  *CcProtocol;
   EFI_CC_MR_INDEX              MrIndex;
-  UINT32                       AllocSize;
 
   if (mTcg2MeasureGptCount > 0) {
     return EFI_SUCCESS;
@@ -200,22 +197,25 @@ Tcg2MeasureGptTable (
                      BlockIo->Media->BlockSize,
                      (UINT8 *)PrimaryHeader
                      );
-  if (EFI_ERROR (Status) || EFI_ERROR (Tpm2SanitizeEfiPartitionTableHeader (PrimaryHeader, BlockIo))) {
-    DEBUG ((DEBUG_ERROR, "Failed to read Partition Table Header or invalid Partition Table Header!\n"));
+  if (EFI_ERROR (Status)) {
+    DEBUG ((DEBUG_ERROR, "Failed to Read Partition Table Header!\n"));
     FreePool (PrimaryHeader);
     return EFI_DEVICE_ERROR;
   }
 
   //
-  // Read the partition entry.
+  // PrimaryHeader->SizeOfPartitionEntry should not be zero
   //
-  Status = Tpm2SanitizePrimaryHeaderAllocationSize (PrimaryHeader, &AllocSize);
-  if (EFI_ERROR (Status)) {
+  if (PrimaryHeader->SizeOfPartitionEntry == 0) {
+    DEBUG ((DEBUG_ERROR, "SizeOfPartitionEntry should not be zero!\n"));
     FreePool (PrimaryHeader);
     return EFI_BAD_BUFFER_SIZE;
   }
 
-  EntryPtr = (UINT8 *)AllocatePool (AllocSize);
+  //
+  // Read the partition entry.
+  //
+  EntryPtr = (UINT8 *)AllocatePool (PrimaryHeader->NumberOfPartitionEntries * PrimaryHeader->SizeOfPartitionEntry);
   if (EntryPtr == NULL) {
     FreePool (PrimaryHeader);
     return EFI_OUT_OF_RESOURCES;
@@ -225,7 +225,7 @@ Tcg2MeasureGptTable (
                      DiskIo,
                      BlockIo->Media->MediaId,
                      MultU64x32 (PrimaryHeader->PartitionEntryLBA, BlockIo->Media->BlockSize),
-                     AllocSize,
+                     PrimaryHeader->NumberOfPartitionEntries * PrimaryHeader->SizeOfPartitionEntry,
                      EntryPtr
                      );
   if (EFI_ERROR (Status)) {
@@ -250,21 +250,16 @@ Tcg2MeasureGptTable (
   //
   // Prepare Data for Measurement (CcProtocol and Tcg2Protocol)
   //
-  Status = Tpm2SanitizePrimaryHeaderGptEventSize (PrimaryHeader, NumberOfPartition, &TcgEventSize);
-  if (EFI_ERROR (Status)) {
-    FreePool (PrimaryHeader);
-    FreePool (EntryPtr);
-    return EFI_DEVICE_ERROR;
-  }
-
-  EventPtr = (UINT8 *)AllocateZeroPool (TcgEventSize);
+  EventSize = (UINT32)(sizeof (EFI_GPT_DATA) - sizeof (GptData->Partitions)
+                       + NumberOfPartition * PrimaryHeader->SizeOfPartitionEntry);
+  EventPtr = (UINT8 *)AllocateZeroPool (EventSize + sizeof (EFI_TCG2_EVENT) - sizeof (Tcg2Event->Event));
   if (EventPtr == NULL) {
     Status = EFI_OUT_OF_RESOURCES;
     goto Exit;
   }
 
   Tcg2Event                       = (EFI_TCG2_EVENT *)EventPtr;
-  Tcg2Event->Size                 = TcgEventSize;
+  Tcg2Event->Size                 = EventSize + sizeof (EFI_TCG2_EVENT) - sizeof (Tcg2Event->Event);
   Tcg2Event->Header.HeaderSize    = sizeof (EFI_TCG2_EVENT_HEADER);
   Tcg2Event->Header.HeaderVersion = EFI_TCG2_EVENT_HEADER_VERSION;
   Tcg2Event->Header.PCRIndex      = 5;
@@ -317,7 +312,7 @@ Tcg2MeasureGptTable (
                                             CcProtocol,
                                             0,
                                             (EFI_PHYSICAL_ADDRESS)(UINTN)(VOID *)GptData,
-                                            (UINT64)TcgEventSize - OFFSET_OF (EFI_TCG2_EVENT, Event),
+                                            (UINT64)EventSize,
                                             CcEvent
                                             );
     if (!EFI_ERROR (Status)) {
@@ -331,7 +326,7 @@ Tcg2MeasureGptTable (
                              Tcg2Protocol,
                              0,
                              (EFI_PHYSICAL_ADDRESS)(UINTN)(VOID *)GptData,
-                             (UINT64)TcgEventSize -  OFFSET_OF (EFI_TCG2_EVENT, Event),
+                             (UINT64)EventSize,
                              Tcg2Event
                              );
     if (!EFI_ERROR (Status)) {
@@ -450,13 +445,11 @@ Tcg2MeasurePeImage (
       Tcg2Event->Header.PCRIndex  = 2;
       break;
     default:
-      DEBUG (
-        (
-         DEBUG_ERROR,
-         "Tcg2MeasurePeImage: Unknown subsystem type %d",
-         ImageType
-        )
-        );
+      DEBUG ((
+        DEBUG_ERROR,
+        "Tcg2MeasurePeImage: Unknown subsystem type %d",
+        ImageType
+        ));
       goto Finish;
   }
 
@@ -522,7 +515,7 @@ Finish:
 
   @param  MeasureBootProtocols  Pointer to the located measure boot protocol instances.
 
-  @retval EFI_SUCCESS           Successfully locate the measure boot protocol instances (at least one instance).
+  @retval EFI_SUCCESS           Sucessfully locate the measure boot protocol instances (at least one instance).
   @retval EFI_UNSUPPORTED       Measure boot is not supported.
 **/
 EFI_STATUS
@@ -652,6 +645,13 @@ DxeTpm2MeasureBootHandler (
     DEBUG ((DEBUG_INFO, "None of Tcg2Protocol/CcMeasurementProtocol is installed.\n"));
     return EFI_SUCCESS;
   }
+
+  DEBUG ((
+    DEBUG_INFO,
+    "Tcg2Protocol = %p, CcMeasurementProtocol = %p\n",
+    MeasureBootProtocols.Tcg2Protocol,
+    MeasureBootProtocols.CcProtocol
+    ));
 
   //
   // Copy File Device Path
