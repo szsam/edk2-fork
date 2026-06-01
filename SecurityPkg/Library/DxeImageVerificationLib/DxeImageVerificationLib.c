@@ -618,7 +618,6 @@ Done:
   @param[in]  AuthDataSize        Size of the Authenticode Signature in bytes.
 
   @retval EFI_UNSUPPORTED             Hash algorithm is not supported.
-  @retval EFI_BAD_BUFFER_SIZE         AuthData provided is invalid size.
   @retval EFI_SUCCESS                 Hash successfully.
 
 **/
@@ -630,28 +629,28 @@ HashPeImageByType (
 {
   UINT8  Index;
 
-  //
-  // Check the Hash algorithm in PE/COFF Authenticode.
-  //    According to PKCS#7 Definition:
-  //        SignedData ::= SEQUENCE {
-  //            version Version,
-  //            digestAlgorithms DigestAlgorithmIdentifiers,
-  //            contentInfo ContentInfo,
-  //            .... }
-  //    The DigestAlgorithmIdentifiers can be used to determine the hash algorithm in PE/COFF hashing
-  //    This field has the fixed offset (+32) in final Authenticode ASN.1 data.
-  //    Fixed offset (+32) is calculated based on two bytes of length encoding.
-  //
-  if ((AuthDataSize > 1) && ((*(AuthData + 1) & TWO_BYTE_ENCODE) != TWO_BYTE_ENCODE)) {
-    //
-    // Only support two bytes of Long Form of Length Encoding.
-    //
-    return EFI_BAD_BUFFER_SIZE;
-  }
-
   for (Index = 0; Index < HASHALG_MAX; Index++) {
-    if (AuthDataSize < 32 + mHash[Index].OidLength) {
+    //
+    // Check the Hash algorithm in PE/COFF Authenticode.
+    //    According to PKCS#7 Definition:
+    //        SignedData ::= SEQUENCE {
+    //            version Version,
+    //            digestAlgorithms DigestAlgorithmIdentifiers,
+    //            contentInfo ContentInfo,
+    //            .... }
+    //    The DigestAlgorithmIdentifiers can be used to determine the hash algorithm in PE/COFF hashing
+    //    This field has the fixed offset (+32) in final Authenticode ASN.1 data.
+    //    Fixed offset (+32) is calculated based on two bytes of length encoding.
+    //
+    if ((AuthDataSize > 1) && ((*(AuthData + 1) & TWO_BYTE_ENCODE) != TWO_BYTE_ENCODE)) {
+      //
+      // Only support two bytes of Long Form of Length Encoding.
+      //
       continue;
+    }
+
+    if (AuthDataSize < 32 + mHash[Index].OidLength) {
+      return EFI_UNSUPPORTED;
     }
 
     if (CompareMem (AuthData + 32, mHash[Index].OidValue, mHash[Index].OidLength) == 0) {
