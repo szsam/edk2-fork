@@ -935,22 +935,6 @@ PxeBcRequestBootService (
     //
     OpLen = NTOHS (((EFI_DHCP6_PACKET_OPTION *)Option)->OpLen);
 
-    //
-    // Check that the minimum and maximum requirements are met
-    //
-    if ((OpLen < PXEBC_MIN_SIZE_OF_DUID) || (OpLen > PXEBC_MAX_SIZE_OF_DUID)) {
-      Status = EFI_INVALID_PARAMETER;
-      goto ON_ERROR;
-    }
-
-    //
-    // Check that the option length is valid.
-    //
-    if ((DiscoverLen + OpLen + PXEBC_COMBINED_SIZE_OF_OPT_CODE_AND_LEN) > DiscoverLenNeeded) {
-      Status = EFI_OUT_OF_RESOURCES;
-      goto ON_ERROR;
-    }
-
     CopyMem (DiscoverOpt, Option, OpLen + PXEBC_COMBINED_SIZE_OF_OPT_CODE_AND_LEN);
     DiscoverOpt += (OpLen + PXEBC_COMBINED_SIZE_OF_OPT_CODE_AND_LEN);
     DiscoverLen += (OpLen + PXEBC_COMBINED_SIZE_OF_OPT_CODE_AND_LEN);
@@ -964,14 +948,6 @@ PxeBcRequestBootService (
         (OpCode != DHCP6_OPT_SERVER_ID)
         )
     {
-      //
-      // Check that the option length is valid.
-      //
-      if (DiscoverLen + OpLen + PXEBC_COMBINED_SIZE_OF_OPT_CODE_AND_LEN > DiscoverLenNeeded) {
-        Status = EFI_OUT_OF_RESOURCES;
-        goto ON_ERROR;
-      }
-
       //
       // Copy all the options except IA option and Server ID
       //
@@ -2236,11 +2212,6 @@ PxeBcDhcp6Discover (
     if ((OpCode != EFI_DHCP6_IA_TYPE_NA) &&
         (OpCode != EFI_DHCP6_IA_TYPE_TA))
     {
-      if (DiscoverLen + OpLen + PXEBC_COMBINED_SIZE_OF_OPT_CODE_AND_LEN > DiscoverLenNeeded) {
-        Status = EFI_OUT_OF_RESOURCES;
-        goto ON_ERROR;
-      }
-
       //
       // Copy all the options except IA option.
       //
