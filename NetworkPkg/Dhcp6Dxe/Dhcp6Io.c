@@ -3,9 +3,9 @@
 
   (C) Copyright 2014 Hewlett-Packard Development Company, L.P.<BR>
   Copyright (c) 2009 - 2018, Intel Corporation. All rights reserved.<BR>
-  Copyright (c) Microsoft Corporation
 
   SPDX-License-Identifier: BSD-2-Clause-Patent
+
 **/
 
 #include "Dhcp6Impl.h"
@@ -1037,8 +1037,7 @@ Dhcp6SendSolicitMsg   (
   //
   Packet = AllocateZeroPool (DHCP6_BASE_PACKET_SIZE + UserLen);
   if (Packet == NULL) {
-    Status = EFI_OUT_OF_RESOURCES;
-    goto ON_ERROR;
+    return EFI_OUT_OF_RESOURCES;
   }
 
   Packet->Size                       = DHCP6_BASE_PACKET_SIZE + UserLen;
@@ -1052,64 +1051,54 @@ Dhcp6SendSolicitMsg   (
   Cursor = Packet->Dhcp6.Option;
 
   Length = HTONS (ClientId->Length);
-  Status = Dhcp6AppendOption (
-             Packet,
-             &Cursor,
+  Cursor = Dhcp6AppendOption (
+             Cursor,
              HTONS (Dhcp6OptClientId),
              Length,
              ClientId->Duid
              );
-  if (EFI_ERROR (Status)) {
-    goto ON_ERROR;
-  }
 
-  Status = Dhcp6AppendETOption (
-             Packet,
-             &Cursor,
+  Cursor = Dhcp6AppendETOption (
+             Cursor,
              Instance,
              &Elapsed
              );
-  if (EFI_ERROR (Status)) {
-    goto ON_ERROR;
-  }
 
-  Status = Dhcp6AppendIaOption (
-             Packet,
-             &Cursor,
+  Cursor = Dhcp6AppendIaOption (
+             Cursor,
              Instance->IaCb.Ia,
              Instance->IaCb.T1,
              Instance->IaCb.T2,
              Packet->Dhcp6.Header.MessageType
              );
-  if (EFI_ERROR (Status)) {
-    goto ON_ERROR;
-  }
 
   //
   // Append user-defined when configurate Dhcp6 service.
   //
   for (Index = 0; Index < Instance->Config->OptionCount; Index++) {
     UserOpt = Instance->Config->OptionList[Index];
-    Status  = Dhcp6AppendOption (
-                Packet,
-                &Cursor,
+    Cursor  = Dhcp6AppendOption (
+                Cursor,
                 UserOpt->OpCode,
                 UserOpt->OpLen,
                 UserOpt->Data
                 );
-    if (EFI_ERROR (Status)) {
-      goto ON_ERROR;
-    }
   }
 
+  //
+  // Determine the size/length of packet.
+  //
+  Packet->Length += (UINT32)(Cursor - Packet->Dhcp6.Option);
   ASSERT (Packet->Size > Packet->Length + 8);
 
   //
   // Callback to user with the packet to be sent and check the user's feedback.
   //
   Status = Dhcp6CallbackUser (Instance, Dhcp6SendSolicit, &Packet);
+
   if (EFI_ERROR (Status)) {
-    goto ON_ERROR;
+    FreePool (Packet);
+    return Status;
   }
 
   //
@@ -1123,8 +1112,10 @@ Dhcp6SendSolicitMsg   (
   Instance->StartTime = 0;
 
   Status = Dhcp6TransmitPacket (Instance, Packet, Elapsed);
+
   if (EFI_ERROR (Status)) {
-    goto ON_ERROR;
+    FreePool (Packet);
+    return Status;
   }
 
   //
@@ -1136,14 +1127,6 @@ Dhcp6SendSolicitMsg   (
            Elapsed,
            Instance->Config->SolicitRetransmission
            );
-
-ON_ERROR:
-
-  if (Packet) {
-    FreePool (Packet);
-  }
-
-  return Status;
 }
 
 /**
@@ -1234,8 +1217,7 @@ Dhcp6SendRequestMsg (
   //
   Packet = AllocateZeroPool (DHCP6_BASE_PACKET_SIZE + UserLen);
   if (Packet == NULL) {
-    Status = EFI_OUT_OF_RESOURCES;
-    goto ON_ERROR;
+    return EFI_OUT_OF_RESOURCES;
   }
 
   Packet->Size                       = DHCP6_BASE_PACKET_SIZE + UserLen;
@@ -1249,67 +1231,51 @@ Dhcp6SendRequestMsg (
   Cursor = Packet->Dhcp6.Option;
 
   Length = HTONS (ClientId->Length);
-  Status = Dhcp6AppendOption (
-             Packet,
-             &Cursor,
+  Cursor = Dhcp6AppendOption (
+             Cursor,
              HTONS (Dhcp6OptClientId),
              Length,
              ClientId->Duid
              );
-  if (EFI_ERROR (Status)) {
-    goto ON_ERROR;
-  }
 
-  Status = Dhcp6AppendETOption (
-             Packet,
-             &Cursor,
+  Cursor = Dhcp6AppendETOption (
+             Cursor,
              Instance,
              &Elapsed
              );
-  if (EFI_ERROR (Status)) {
-    goto ON_ERROR;
-  }
 
-  Status = Dhcp6AppendOption (
-             Packet,
-             &Cursor,
+  Cursor = Dhcp6AppendOption (
+             Cursor,
              HTONS (Dhcp6OptServerId),
              ServerId->Length,
              ServerId->Duid
              );
-  if (EFI_ERROR (Status)) {
-    goto ON_ERROR;
-  }
 
-  Status = Dhcp6AppendIaOption (
-             Packet,
-             &Cursor,
+  Cursor = Dhcp6AppendIaOption (
+             Cursor,
              Instance->IaCb.Ia,
              Instance->IaCb.T1,
              Instance->IaCb.T2,
              Packet->Dhcp6.Header.MessageType
              );
-  if (EFI_ERROR (Status)) {
-    goto ON_ERROR;
-  }
 
   //
   // Append user-defined when configurate Dhcp6 service.
   //
   for (Index = 0; Index < Instance->Config->OptionCount; Index++) {
     UserOpt = Instance->Config->OptionList[Index];
-    Status  = Dhcp6AppendOption (
-                Packet,
-                &Cursor,
+    Cursor  = Dhcp6AppendOption (
+                Cursor,
                 UserOpt->OpCode,
                 UserOpt->OpLen,
                 UserOpt->Data
                 );
-    if (EFI_ERROR (Status)) {
-      goto ON_ERROR;
-    }
   }
 
+  //
+  // Determine the size/length of packet.
+  //
+  Packet->Length += (UINT32)(Cursor - Packet->Dhcp6.Option);
   ASSERT (Packet->Size > Packet->Length + 8);
 
   //
@@ -1318,7 +1284,8 @@ Dhcp6SendRequestMsg (
   Status = Dhcp6CallbackUser (Instance, Dhcp6SendRequest, &Packet);
 
   if (EFI_ERROR (Status)) {
-    goto ON_ERROR;
+    FreePool (Packet);
+    return Status;
   }
 
   //
@@ -1334,21 +1301,14 @@ Dhcp6SendRequestMsg (
   Status = Dhcp6TransmitPacket (Instance, Packet, Elapsed);
 
   if (EFI_ERROR (Status)) {
-    goto ON_ERROR;
+    FreePool (Packet);
+    return Status;
   }
 
   //
   // Enqueue the sent packet for the retransmission in case reply timeout.
   //
   return Dhcp6EnqueueRetry (Instance, Packet, Elapsed, NULL);
-
-ON_ERROR:
-
-  if (Packet) {
-    FreePool (Packet);
-  }
-
-  return Status;
 }
 
 /**
@@ -1413,8 +1373,7 @@ Dhcp6SendDeclineMsg (
   //
   Packet = AllocateZeroPool (DHCP6_BASE_PACKET_SIZE);
   if (Packet == NULL) {
-    Status = EFI_OUT_OF_RESOURCES;
-    goto ON_ERROR;
+    return EFI_OUT_OF_RESOURCES;
   }
 
   Packet->Size                       = DHCP6_BASE_PACKET_SIZE;
@@ -1428,58 +1387,42 @@ Dhcp6SendDeclineMsg (
   Cursor = Packet->Dhcp6.Option;
 
   Length = HTONS (ClientId->Length);
-  Status = Dhcp6AppendOption (
-             Packet,
-             &Cursor,
+  Cursor = Dhcp6AppendOption (
+             Cursor,
              HTONS (Dhcp6OptClientId),
              Length,
              ClientId->Duid
              );
-  if (EFI_ERROR (Status)) {
-    goto ON_ERROR;
-  }
 
-  Status = Dhcp6AppendETOption (
-             Packet,
-             &Cursor,
+  Cursor = Dhcp6AppendETOption (
+             Cursor,
              Instance,
              &Elapsed
              );
-  if (EFI_ERROR (Status)) {
-    goto ON_ERROR;
-  }
 
-  Status = Dhcp6AppendOption (
-             Packet,
-             &Cursor,
+  Cursor = Dhcp6AppendOption (
+             Cursor,
              HTONS (Dhcp6OptServerId),
              ServerId->Length,
              ServerId->Duid
              );
-  if (EFI_ERROR (Status)) {
-    goto ON_ERROR;
-  }
 
-  Status = Dhcp6AppendIaOption (
-             Packet,
-             &Cursor,
-             DecIa,
-             0,
-             0,
-             Packet->Dhcp6.Header.MessageType
-             );
-  if (EFI_ERROR (Status)) {
-    goto ON_ERROR;
-  }
+  Cursor = Dhcp6AppendIaOption (Cursor, DecIa, 0, 0, Packet->Dhcp6.Header.MessageType);
 
+  //
+  // Determine the size/length of packet.
+  //
+  Packet->Length += (UINT32)(Cursor - Packet->Dhcp6.Option);
   ASSERT (Packet->Size > Packet->Length + 8);
 
   //
   // Callback to user with the packet to be sent and check the user's feedback.
   //
   Status = Dhcp6CallbackUser (Instance, Dhcp6SendDecline, &Packet);
+
   if (EFI_ERROR (Status)) {
-    goto ON_ERROR;
+    FreePool (Packet);
+    return Status;
   }
 
   //
@@ -1493,22 +1436,16 @@ Dhcp6SendDeclineMsg (
   Instance->StartTime = 0;
 
   Status = Dhcp6TransmitPacket (Instance, Packet, Elapsed);
+
   if (EFI_ERROR (Status)) {
-    goto ON_ERROR;
+    FreePool (Packet);
+    return Status;
   }
 
   //
   // Enqueue the sent packet for the retransmission in case reply timeout.
   //
   return Dhcp6EnqueueRetry (Instance, Packet, Elapsed, NULL);
-
-ON_ERROR:
-
-  if (Packet) {
-    FreePool (Packet);
-  }
-
-  return Status;
 }
 
 /**
@@ -1569,8 +1506,7 @@ Dhcp6SendReleaseMsg (
   //
   Packet = AllocateZeroPool (DHCP6_BASE_PACKET_SIZE);
   if (Packet == NULL) {
-    Status = EFI_OUT_OF_RESOURCES;
-    goto ON_ERROR;
+    return EFI_OUT_OF_RESOURCES;
   }
 
   Packet->Size                       = DHCP6_BASE_PACKET_SIZE;
@@ -1584,61 +1520,45 @@ Dhcp6SendReleaseMsg (
   Cursor = Packet->Dhcp6.Option;
 
   Length = HTONS (ClientId->Length);
-  Status = Dhcp6AppendOption (
-             Packet,
-             &Cursor,
+  Cursor = Dhcp6AppendOption (
+             Cursor,
              HTONS (Dhcp6OptClientId),
              Length,
              ClientId->Duid
              );
-  if (EFI_ERROR (Status)) {
-    goto ON_ERROR;
-  }
 
   //
   // ServerId is extracted from packet, it's network order.
   //
-  Status = Dhcp6AppendOption (
-             Packet,
-             &Cursor,
+  Cursor = Dhcp6AppendOption (
+             Cursor,
              HTONS (Dhcp6OptServerId),
              ServerId->Length,
              ServerId->Duid
              );
-  if (EFI_ERROR (Status)) {
-    goto ON_ERROR;
-  }
 
-  Status = Dhcp6AppendETOption (
-             Packet,
-             &Cursor,
+  Cursor = Dhcp6AppendETOption (
+             Cursor,
              Instance,
              &Elapsed
              );
-  if (EFI_ERROR (Status)) {
-    goto ON_ERROR;
-  }
 
-  Status = Dhcp6AppendIaOption (
-             Packet,
-             &Cursor,
-             RelIa,
-             0,
-             0,
-             Packet->Dhcp6.Header.MessageType
-             );
-  if (EFI_ERROR (Status)) {
-    goto ON_ERROR;
-  }
+  Cursor = Dhcp6AppendIaOption (Cursor, RelIa, 0, 0, Packet->Dhcp6.Header.MessageType);
 
+  //
+  // Determine the size/length of packet
+  //
+  Packet->Length += (UINT32)(Cursor - Packet->Dhcp6.Option);
   ASSERT (Packet->Size > Packet->Length + 8);
 
   //
   // Callback to user with the packet to be sent and check the user's feedback.
   //
   Status = Dhcp6CallbackUser (Instance, Dhcp6SendRelease, &Packet);
+
   if (EFI_ERROR (Status)) {
-    goto ON_ERROR;
+    FreePool (Packet);
+    return Status;
   }
 
   //
@@ -1648,22 +1568,16 @@ Dhcp6SendReleaseMsg (
   Instance->IaCb.Ia->State = Dhcp6Releasing;
 
   Status = Dhcp6TransmitPacket (Instance, Packet, Elapsed);
+
   if (EFI_ERROR (Status)) {
-    goto ON_ERROR;
+    FreePool (Packet);
+    return Status;
   }
 
   //
   // Enqueue the sent packet for the retransmission in case reply timeout.
   //
   return Dhcp6EnqueueRetry (Instance, Packet, Elapsed, NULL);
-
-ON_ERROR:
-
-  if (Packet) {
-    FreePool (Packet);
-  }
-
-  return Status;
 }
 
 /**
@@ -1722,8 +1636,7 @@ Dhcp6SendRenewRebindMsg (
   //
   Packet = AllocateZeroPool (DHCP6_BASE_PACKET_SIZE + UserLen);
   if (Packet == NULL) {
-    Status = EFI_OUT_OF_RESOURCES;
-    goto ON_ERROR;
+    return EFI_OUT_OF_RESOURCES;
   }
 
   Packet->Size                       = DHCP6_BASE_PACKET_SIZE + UserLen;
@@ -1737,38 +1650,26 @@ Dhcp6SendRenewRebindMsg (
   Cursor = Packet->Dhcp6.Option;
 
   Length = HTONS (ClientId->Length);
-  Status = Dhcp6AppendOption (
-             Packet,
-             &Cursor,
+  Cursor = Dhcp6AppendOption (
+             Cursor,
              HTONS (Dhcp6OptClientId),
              Length,
              ClientId->Duid
              );
-  if (EFI_ERROR (Status)) {
-    goto ON_ERROR;
-  }
 
-  Status = Dhcp6AppendETOption (
-             Packet,
-             &Cursor,
+  Cursor = Dhcp6AppendETOption (
+             Cursor,
              Instance,
              &Elapsed
              );
-  if (EFI_ERROR (Status)) {
-    goto ON_ERROR;
-  }
 
-  Status = Dhcp6AppendIaOption (
-             Packet,
-             &Cursor,
+  Cursor = Dhcp6AppendIaOption (
+             Cursor,
              Instance->IaCb.Ia,
              Instance->IaCb.T1,
              Instance->IaCb.T2,
              Packet->Dhcp6.Header.MessageType
              );
-  if (EFI_ERROR (Status)) {
-    goto ON_ERROR;
-  }
 
   if (!RebindRequest) {
     //
@@ -1784,22 +1685,18 @@ Dhcp6SendRenewRebindMsg (
                Dhcp6OptServerId
                );
     if (Option == NULL) {
-      Status = EFI_DEVICE_ERROR;
-      goto ON_ERROR;
+      FreePool (Packet);
+      return EFI_DEVICE_ERROR;
     }
 
     ServerId = (EFI_DHCP6_DUID *)(Option + 2);
 
-    Status = Dhcp6AppendOption (
-               Packet,
-               &Cursor,
+    Cursor = Dhcp6AppendOption (
+               Cursor,
                HTONS (Dhcp6OptServerId),
                ServerId->Length,
                ServerId->Duid
                );
-    if (EFI_ERROR (Status)) {
-      goto ON_ERROR;
-    }
   }
 
   //
@@ -1807,18 +1704,18 @@ Dhcp6SendRenewRebindMsg (
   //
   for (Index = 0; Index < Instance->Config->OptionCount; Index++) {
     UserOpt = Instance->Config->OptionList[Index];
-    Status  = Dhcp6AppendOption (
-                Packet,
-                &Cursor,
+    Cursor  = Dhcp6AppendOption (
+                Cursor,
                 UserOpt->OpCode,
                 UserOpt->OpLen,
                 UserOpt->Data
                 );
-    if (EFI_ERROR (Status)) {
-      goto ON_ERROR;
-    }
   }
 
+  //
+  // Determine the size/length of packet.
+  //
+  Packet->Length += (UINT32)(Cursor - Packet->Dhcp6.Option);
   ASSERT (Packet->Size > Packet->Length + 8);
 
   //
@@ -1828,8 +1725,10 @@ Dhcp6SendRenewRebindMsg (
   Event = (RebindRequest) ? Dhcp6EnterRebinding : Dhcp6EnterRenewing;
 
   Status = Dhcp6CallbackUser (Instance, Event, &Packet);
+
   if (EFI_ERROR (Status)) {
-    goto ON_ERROR;
+    FreePool (Packet);
+    return Status;
   }
 
   //
@@ -1846,22 +1745,16 @@ Dhcp6SendRenewRebindMsg (
   Instance->StartTime = 0;
 
   Status = Dhcp6TransmitPacket (Instance, Packet, Elapsed);
+
   if (EFI_ERROR (Status)) {
-    goto ON_ERROR;
+    FreePool (Packet);
+    return Status;
   }
 
   //
   // Enqueue the sent packet for the retransmission in case reply timeout.
   //
   return Dhcp6EnqueueRetry (Instance, Packet, Elapsed, NULL);
-
-ON_ERROR:
-
-  if (Packet) {
-    FreePool (Packet);
-  }
-
-  return Status;
 }
 
 /**
@@ -2025,8 +1918,7 @@ Dhcp6SendInfoRequestMsg (
   //
   Packet = AllocateZeroPool (DHCP6_BASE_PACKET_SIZE + UserLen);
   if (Packet == NULL) {
-    Status = EFI_OUT_OF_RESOURCES;
-    goto ON_ERROR;
+    return EFI_OUT_OF_RESOURCES;
   }
 
   Packet->Size                       = DHCP6_BASE_PACKET_SIZE + UserLen;
@@ -2043,56 +1935,44 @@ Dhcp6SendInfoRequestMsg (
 
   if (SendClientId) {
     Length = HTONS (ClientId->Length);
-    Status = Dhcp6AppendOption (
-               Packet,
-               &Cursor,
+    Cursor = Dhcp6AppendOption (
+               Cursor,
                HTONS (Dhcp6OptClientId),
                Length,
                ClientId->Duid
                );
-    if (EFI_ERROR (Status)) {
-      goto ON_ERROR;
-    }
   }
 
-  Status = Dhcp6AppendETOption (
-             Packet,
-             &Cursor,
+  Cursor = Dhcp6AppendETOption (
+             Cursor,
              Instance,
              &Elapsed
              );
-  if (EFI_ERROR (Status)) {
-    goto ON_ERROR;
-  }
 
-  Status = Dhcp6AppendOption (
-             Packet,
-             &Cursor,
+  Cursor = Dhcp6AppendOption (
+             Cursor,
              OptionRequest->OpCode,
              OptionRequest->OpLen,
              OptionRequest->Data
              );
-  if (EFI_ERROR (Status)) {
-    goto ON_ERROR;
-  }
 
   //
   // Append user-defined when configurate Dhcp6 service.
   //
   for (Index = 0; Index < OptionCount; Index++) {
     UserOpt = OptionList[Index];
-    Status  = Dhcp6AppendOption (
-                Packet,
-                &Cursor,
+    Cursor  = Dhcp6AppendOption (
+                Cursor,
                 UserOpt->OpCode,
                 UserOpt->OpLen,
                 UserOpt->Data
                 );
-    if (EFI_ERROR (Status)) {
-      goto ON_ERROR;
-    }
   }
 
+  //
+  // Determine the size/length of packet.
+  //
+  Packet->Length += (UINT32)(Cursor - Packet->Dhcp6.Option);
   ASSERT (Packet->Size > Packet->Length + 8);
 
   //
@@ -2104,22 +1984,16 @@ Dhcp6SendInfoRequestMsg (
   // Send info-request packet with no state.
   //
   Status = Dhcp6TransmitPacket (Instance, Packet, Elapsed);
+
   if (EFI_ERROR (Status)) {
-    goto ON_ERROR;
+    FreePool (Packet);
+    return Status;
   }
 
   //
   // Enqueue the sent packet for the retransmission in case reply timeout.
   //
   return Dhcp6EnqueueRetry (Instance, Packet, Elapsed, Retransmission);
-
-ON_ERROR:
-
-  if (Packet) {
-    FreePool (Packet);
-  }
-
-  return Status;
 }
 
 /**
@@ -2170,8 +2044,7 @@ Dhcp6SendConfirmMsg (
   //
   Packet = AllocateZeroPool (DHCP6_BASE_PACKET_SIZE + UserLen);
   if (Packet == NULL) {
-    Status = EFI_OUT_OF_RESOURCES;
-    goto ON_ERROR;
+    return EFI_OUT_OF_RESOURCES;
   }
 
   Packet->Size                       = DHCP6_BASE_PACKET_SIZE + UserLen;
@@ -2185,64 +2058,54 @@ Dhcp6SendConfirmMsg (
   Cursor = Packet->Dhcp6.Option;
 
   Length = HTONS (ClientId->Length);
-  Status = Dhcp6AppendOption (
-             Packet,
-             &Cursor,
+  Cursor = Dhcp6AppendOption (
+             Cursor,
              HTONS (Dhcp6OptClientId),
              Length,
              ClientId->Duid
              );
-  if (EFI_ERROR (Status)) {
-    goto ON_ERROR;
-  }
 
-  Status = Dhcp6AppendETOption (
-             Packet,
-             &Cursor,
+  Cursor = Dhcp6AppendETOption (
+             Cursor,
              Instance,
              &Elapsed
              );
-  if (EFI_ERROR (Status)) {
-    goto ON_ERROR;
-  }
 
-  Status = Dhcp6AppendIaOption (
-             Packet,
-             &Cursor,
+  Cursor = Dhcp6AppendIaOption (
+             Cursor,
              Instance->IaCb.Ia,
              Instance->IaCb.T1,
              Instance->IaCb.T2,
              Packet->Dhcp6.Header.MessageType
              );
-  if (EFI_ERROR (Status)) {
-    goto ON_ERROR;
-  }
 
   //
   // Append user-defined when configurate Dhcp6 service.
   //
   for (Index = 0; Index < Instance->Config->OptionCount; Index++) {
     UserOpt = Instance->Config->OptionList[Index];
-    Status  = Dhcp6AppendOption (
-                Packet,
-                &Cursor,
+    Cursor  = Dhcp6AppendOption (
+                Cursor,
                 UserOpt->OpCode,
                 UserOpt->OpLen,
                 UserOpt->Data
                 );
-    if (EFI_ERROR (Status)) {
-      goto ON_ERROR;
-    }
   }
 
+  //
+  // Determine the size/length of packet.
+  //
+  Packet->Length += (UINT32)(Cursor - Packet->Dhcp6.Option);
   ASSERT (Packet->Size > Packet->Length + 8);
 
   //
   // Callback to user with the packet to be sent and check the user's feedback.
   //
   Status = Dhcp6CallbackUser (Instance, Dhcp6SendConfirm, &Packet);
+
   if (EFI_ERROR (Status)) {
-    goto ON_ERROR;
+    FreePool (Packet);
+    return Status;
   }
 
   //
@@ -2256,22 +2119,16 @@ Dhcp6SendConfirmMsg (
   Instance->StartTime = 0;
 
   Status = Dhcp6TransmitPacket (Instance, Packet, Elapsed);
+
   if (EFI_ERROR (Status)) {
-    goto ON_ERROR;
+    FreePool (Packet);
+    return Status;
   }
 
   //
   // Enqueue the sent packet for the retransmission in case reply timeout.
   //
   return Dhcp6EnqueueRetry (Instance, Packet, Elapsed, NULL);
-
-ON_ERROR:
-
-  if (Packet) {
-    FreePool (Packet);
-  }
-
-  return Status;
 }
 
 /**
