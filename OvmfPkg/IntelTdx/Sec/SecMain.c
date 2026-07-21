@@ -29,11 +29,9 @@
 #include <Register/Intel/ArchitecturalMsr.h>
 #include <Register/Intel/Cpuid.h>
 
-#define SEC_IDT_ENTRY_COUNT  34
-
 typedef struct _SEC_IDT_TABLE {
   EFI_PEI_SERVICES            *PeiService;
-  IA32_IDT_GATE_DESCRIPTOR    IdtTable[SEC_IDT_ENTRY_COUNT];
+  IA32_IDT_GATE_DESCRIPTOR    IdtTable[X86_CPU_INTERRUPT_NUM];
 } SEC_IDT_TABLE;
 
 //
@@ -142,7 +140,7 @@ SecCoreStartupWithStack (
   //
   IdtTableInStack.PeiService = NULL;
 
-  for (Index = 0; Index < SEC_IDT_ENTRY_COUNT; Index++) {
+  for (Index = 0; Index < X86_CPU_INTERRUPT_NUM; Index++) {
     //
     // Declare the local variables that actually move the data elements as
     // volatile to prevent the optimizer from replacing this function with
